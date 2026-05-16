@@ -215,6 +215,18 @@ export default function Home() {
             {/* Streak */}
             <StreakDisplay />
 
+            {/* Quick add task */}
+            <div className="bg-gray-800 rounded-xl p-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-gray-400 text-left hover:bg-gray-650 hover:border-gray-500 transition-colors"
+                >
+                  + Add a task...
+                </button>
+              </div>
+            </div>
+
             {/* Brain dump */}
             <div className="bg-gray-800 rounded-xl p-4">
               <NoteForm
