@@ -28,6 +28,7 @@ export default function Home() {
   const [showForm, setShowForm] = useState(false);
   const [editNote, setEditNote] = useState<Note | null>(null);
   const [showQuickCapture, setShowQuickCapture] = useState(false);
+  const [micSupported, setMicSupported] = useState(false);
   const [showBrainDump, setShowBrainDump] = useState(false);
   const [showRitual, setShowRitual] = useState<'morning' | 'evening' | null>(null);
   const [showMore, setShowMore] = useState(false);
@@ -71,6 +72,10 @@ export default function Home() {
     trainModel();
     archiveCompleted();
     seedDefaultCategories();
+
+    // Check speech recognition support
+    const hasSpeech = !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+    setMicSupported(hasSpeech);
 
     const hour = new Date().getHours();
     if (hour >= 6 && hour <= 10) {
@@ -429,15 +434,17 @@ export default function Home() {
         )}
       </main>
 
-      {/* Floating mic button */}
-      <Button
-        onClick={() => setShowQuickCapture(true)}
-        size="lg"
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-10"
-        title="Quick Capture (Ctrl+Space)"
-      >
-        <Mic className="h-6 w-6" />
-      </Button>
+      {/* Floating mic button — only shown when speech recognition supported */}
+      {micSupported && (
+        <Button
+          onClick={() => setShowQuickCapture(true)}
+          size="lg"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-10"
+          title="Quick Capture (Ctrl+Space)"
+        >
+          <Mic className="h-6 w-6" />
+        </Button>
+      )}
     </div>
   );
 }

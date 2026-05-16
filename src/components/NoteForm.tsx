@@ -31,7 +31,7 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
   const [recurring, setRecurring] = useState<RecurringConfig | null>(editNote?.recurring || null);
   const [suggestedCat, setSuggestedCat] = useState<string | null>(null);
 
-  const { transcript, isListening, startListening, stopListening, error: speechError } = useSpeech();
+  const { transcript, isListening, startListening, stopListening, error: speechError, isSupported: micSupported } = useSpeech();
 
   const categories = useLiveQuery(() => db.categories.toArray());
 
@@ -121,16 +121,18 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
             className="flex-1"
             autoFocus
           />
-          <Button
-            size="icon"
-            variant={isListening ? 'destructive' : 'default'}
-            onClick={isListening ? stopListening : startListening}
-            className={isListening ? 'animate-pulse' : ''}
-          >
-            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-          </Button>
+          {micSupported && (
+            <Button
+              size="icon"
+              variant={isListening ? 'destructive' : 'default'}
+              onClick={isListening ? stopListening : startListening}
+              className={isListening ? 'animate-pulse' : ''}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </Button>
+          )}
         </div>
-        <p className="text-muted-foreground text-xs">Press Enter to save. Voice button for speech. Sort later in organize mode.</p>
+        <p className="text-muted-foreground text-xs">Press Enter to save.{micSupported ? ' Voice button for speech.' : ''} Sort later in organize mode.</p>
       </div>
     );
   }
@@ -153,14 +155,16 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
           rows={4}
           className="resize-none pr-12"
         />
-        <Button
-          size="icon"
-          variant={isListening ? 'destructive' : 'secondary'}
-          className={`absolute bottom-2 right-2 h-8 w-8 ${isListening ? 'animate-pulse' : ''}`}
-          onClick={isListening ? stopListening : startListening}
-        >
-          {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
-        </Button>
+        {micSupported && (
+          <Button
+            size="icon"
+            variant={isListening ? 'destructive' : 'secondary'}
+            className={`absolute bottom-2 right-2 h-8 w-8 ${isListening ? 'animate-pulse' : ''}`}
+            onClick={isListening ? stopListening : startListening}
+          >
+            {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+          </Button>
+        )}
       </div>
       {speechError && <p className="text-destructive text-xs">{speechError}</p>}
 

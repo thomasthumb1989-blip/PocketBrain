@@ -14,7 +14,7 @@ interface QuickCaptureProps {
 
 export default function QuickCapture({ onClose }: QuickCaptureProps) {
   const [text, setText] = useState('');
-  const { transcript, isListening, startListening, stopListening } = useSpeech();
+  const { transcript, isListening, startListening, stopListening, isSupported: micSupported } = useSpeech();
 
   useEffect(() => {
     if (transcript) {
@@ -72,14 +72,16 @@ export default function QuickCapture({ onClose }: QuickCaptureProps) {
               placeholder="Quick capture... (dates & priority auto-detected)"
               autoFocus
             />
-            <Button
-              size="icon"
-              variant={isListening ? 'destructive' : 'secondary'}
-              onClick={isListening ? stopListening : startListening}
-              className={isListening ? 'animate-pulse' : ''}
-            >
-              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-            </Button>
+            {micSupported && (
+              <Button
+                size="icon"
+                variant={isListening ? 'destructive' : 'secondary'}
+                onClick={isListening ? stopListening : startListening}
+                className={isListening ? 'animate-pulse' : ''}
+              >
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </Button>
+            )}
             <Button
               size="icon"
               disabled={!text.trim()}
