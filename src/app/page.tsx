@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { db, type Note, getUpcomingTasks, archiveCompleted } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { requestNotificationPermission, startReminderChecker } from '@/lib/notifications';
-import { trainModel } from '@/lib/categories';
+import { trainModel, seedDefaultCategories } from '@/lib/categories';
 import { registerServiceWorker } from '@/lib/register-sw';
 import TaskCard from '@/components/TaskCard';
 import NoteForm from '@/components/NoteForm';
@@ -62,6 +62,7 @@ export default function Home() {
     startReminderChecker();
     trainModel();
     archiveCompleted();
+    seedDefaultCategories();
 
     // Check if morning ritual needed
     const hour = new Date().getHours();

@@ -85,3 +85,38 @@ export function getNextColor(existingColors: string[]): string {
   const available = DEFAULT_COLORS.filter((c) => !existingColors.includes(c));
   return available[0] || DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)];
 }
+
+const DEFAULT_CATEGORIES: { name: string; color: string }[] = [
+  { name: 'Work', color: '#FF6B6B' },
+  { name: 'Personal', color: '#4ECDC4' },
+  { name: 'Health', color: '#96CEB4' },
+  { name: 'Finance', color: '#FFEAA7' },
+  { name: 'Home', color: '#F7DC6F' },
+  { name: 'Errands', color: '#DDA0DD' },
+  { name: 'Quick Wins', color: '#45B7D1' },
+  { name: 'Deep Work', color: '#BB8FCE' },
+  { name: 'Morning Routine', color: '#FFB347' },
+  { name: 'Evening Routine', color: '#7B68EE' },
+  { name: 'Appointments', color: '#85C1E9' },
+  { name: 'Phone Calls', color: '#E8A87C' },
+  { name: 'Self-Care', color: '#98D8C8' },
+  { name: 'Fitness', color: '#FF7675' },
+  { name: 'Family', color: '#FDA7DF' },
+  { name: 'Social', color: '#55E6C1' },
+  { name: 'Learning', color: '#74B9FF' },
+  { name: 'Projects', color: '#A29BFE' },
+  { name: 'Waiting On', color: '#FDCB6E' },
+  { name: 'Someday', color: '#636E72' },
+];
+
+export async function seedDefaultCategories() {
+  const count = await db.categories.count();
+  if (count > 0) return; // Already seeded
+
+  await db.categories.bulkAdd(
+    DEFAULT_CATEGORIES.map((cat) => ({
+      ...cat,
+      createdAt: new Date(),
+    }))
+  );
+}
