@@ -46,6 +46,7 @@ export default function Home() {
 
   const allNotes = useLiveQuery(() =>
     db.notes.filter((n) => !n.archived).toArray()
+      .then((notes) => notes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
   );
 
   const archivedNotes = useLiveQuery(() =>
