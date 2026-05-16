@@ -14,17 +14,13 @@ export default function DailyRitual({ type, onClose }: DailyRitualProps) {
 
   const activeTasks = useLiveQuery(() =>
     db.notes
-      .where('isTask')
-      .equals(1)
-      .and((n) => !n.completed && !n.archived)
+      .filter((n) => n.isTask && !n.completed && !n.archived)
       .toArray()
   );
 
   const completedToday = useLiveQuery(() =>
     db.notes
-      .where('completed')
-      .equals(1)
-      .and((n) => n.completedAt !== null && new Date(n.completedAt).toISOString().split('T')[0] === today)
+      .filter((n) => n.completed && n.completedAt !== null && new Date(n.completedAt).toISOString().split('T')[0] === today)
       .toArray()
   );
 

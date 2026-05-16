@@ -38,9 +38,7 @@ async function checkReminders() {
   const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
   const tasks = await db.notes
-    .where('isTask')
-    .equals(1)
-    .and((note) => !note.completed && !note.archived)
+    .filter((note) => note.isTask && !note.completed && !note.archived)
     .toArray();
 
   for (const task of tasks) {

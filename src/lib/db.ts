@@ -76,17 +76,13 @@ export { db };
 // Helper functions
 export async function getActiveTasks() {
   return db.notes
-    .where('isTask')
-    .equals(1)
-    .and((note) => !note.archived && !note.completed)
+    .filter((note) => note.isTask && !note.archived && !note.completed)
     .sortBy('deadline');
 }
 
 export async function getUpcomingTasks(limit = 5) {
   const tasks = await db.notes
-    .where('isTask')
-    .equals(1)
-    .and((note) => !note.archived && !note.completed && note.deadline !== null)
+    .filter((note) => note.isTask && !note.archived && !note.completed && note.deadline !== null)
     .toArray();
 
   return tasks
@@ -101,19 +97,19 @@ export async function getUpcomingTasks(limit = 5) {
 export async function getOverdueTasks() {
   const now = new Date();
   return db.notes
-    .where('isTask')
-    .equals(1)
-    .and((note) => !note.archived && !note.completed && note.deadline !== null && new Date(note.deadline) < now)
+    .filter((note) => note.isTask && !note.archived && !note.completed && note.deadline !== null && new Date(note.deadline) < now)
     .toArray();
 }
 
 export async function archiveCompleted() {
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  await db.notes
-    .where('completed')
-    .equals(1)
-    .and((note) => note.completedAt !== null && new Date(note.completedAt) < oneDayAgo)
-    .modify({ archived: true });
+  const notes = await db.notes
+    .filter((note) => note.completed && note.completedAt !== null && new Date(note.completedAt) < oneDayAgo)
+    .toArray();
+  const ids = notes.map((n) => n.id!);
+  if (ids.length > 0) {
+    await db.notes.where('id').anyOf(ids).modify({ archived: true });
+  }
 }
 
 export async function calculateProgress(note: Note): Promise<number> {

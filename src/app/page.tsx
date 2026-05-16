@@ -30,9 +30,7 @@ export default function Home() {
   // Live queries
   const upcomingTasks = useLiveQuery(() =>
     db.notes
-      .where('isTask')
-      .equals(1)
-      .and((n) => !n.completed && !n.archived && n.deadline !== null)
+      .filter((n) => n.isTask && !n.completed && !n.archived && n.deadline !== null)
       .toArray()
       .then((tasks) =>
         tasks.sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime())
@@ -42,18 +40,16 @@ export default function Home() {
   const overdueTasks = useLiveQuery(() => {
     const now = new Date();
     return db.notes
-      .where('isTask')
-      .equals(1)
-      .and((n) => !n.completed && !n.archived && n.deadline !== null && new Date(n.deadline) < now)
+      .filter((n) => n.isTask && !n.completed && !n.archived && n.deadline !== null && new Date(n.deadline) < now)
       .toArray();
   });
 
   const allNotes = useLiveQuery(() =>
-    db.notes.where('archived').equals(0).toArray()
+    db.notes.filter((n) => !n.archived).toArray()
   );
 
   const archivedNotes = useLiveQuery(() =>
-    db.notes.where('archived').equals(1).toArray()
+    db.notes.filter((n) => n.archived).toArray()
   );
 
   const categories = useLiveQuery(() => db.categories.toArray());
