@@ -5,6 +5,12 @@ import { db, type Note, type Reminder, type RecurringConfig } from '@/lib/db';
 import { useSpeech, parseVoiceInput } from '@/hooks/useSpeech';
 import { suggestCategory } from '@/lib/categories';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Mic, MicOff, Plus, X, Sparkles, Clock, Repeat } from 'lucide-react';
 
 interface NoteFormProps {
   editNote?: Note | null;
@@ -29,7 +35,6 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
 
   const categories = useLiveQuery(() => db.categories.toArray());
 
-  // Apply voice transcript
   useEffect(() => {
     if (transcript) {
       const parsed = parseVoiceInput(transcript);
@@ -45,7 +50,6 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
     }
   }, [transcript]);
 
-  // Suggest category as user types
   useEffect(() => {
     if (title || content) {
       const suggestion = suggestCategory(title, content);
@@ -103,8 +107,7 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <input
-            type="text"
+          <Input
             placeholder="Dump it — sort later..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -115,54 +118,51 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
                 setTitle('');
               }
             }}
-            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1"
             autoFocus
           />
-          <button
+          <Button
+            size="icon"
+            variant={isListening ? 'destructive' : 'default'}
             onClick={isListening ? stopListening : startListening}
-            className={`p-3 rounded-full ${isListening ? 'bg-red-500 animate-pulse' : 'bg-blue-600 hover:bg-blue-500'}`}
+            className={isListening ? 'animate-pulse' : ''}
           >
-            🎙️
-          </button>
+            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          </Button>
         </div>
-        <p className="text-gray-500 text-xs">Press Enter to save. Voice button for speech. Sort later in organize mode.</p>
+        <p className="text-muted-foreground text-xs">Press Enter to save. Voice button for speech. Sort later in organize mode.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-800 rounded-xl p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-white">{editNote ? 'Edit' : 'New'} Note</h2>
-        <button onClick={onCancel} className="text-gray-400 hover:text-white text-xl">✕</button>
-      </div>
-
+    <div className="space-y-4 max-h-[80vh] overflow-y-auto">
       {/* Title */}
-      <input
-        type="text"
+      <Input
         placeholder="Title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
 
       {/* Content + voice */}
       <div className="relative">
-        <textarea
+        <Textarea
           placeholder="What's on your mind?"
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={4}
-          className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className="resize-none pr-12"
         />
-        <button
+        <Button
+          size="icon"
+          variant={isListening ? 'destructive' : 'secondary'}
+          className={`absolute bottom-2 right-2 h-8 w-8 ${isListening ? 'animate-pulse' : ''}`}
           onClick={isListening ? stopListening : startListening}
-          className={`absolute bottom-3 right-3 p-2 rounded-full ${isListening ? 'bg-red-500 animate-pulse' : 'bg-blue-600 hover:bg-blue-500'}`}
         >
-          🎙️
-        </button>
+          {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+        </Button>
       </div>
-      {speechError && <p className="text-red-400 text-xs">{speechError}</p>}
+      {speechError && <p className="text-destructive text-xs">{speechError}</p>}
 
       {/* Category */}
       <div className="flex gap-2 items-center">
@@ -173,7 +173,7 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
             const cat = categories?.find((c) => c.name === e.target.value);
             if (cat) setCategoryColor(cat.color);
           }}
-          className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+          className="flex-1 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
           <option value="">No category</option>
           {categories?.map((cat) => (
@@ -181,18 +181,23 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
           ))}
         </select>
         {suggestedCat && suggestedCat !== category && (
-          <button
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs gap-1"
             onClick={() => {
               setCategory(suggestedCat);
               const cat = categories?.find((c) => c.name === suggestedCat);
               if (cat) setCategoryColor(cat.color);
             }}
-            className="text-xs bg-blue-600/30 text-blue-300 px-2 py-1 rounded"
           >
-            AI: {suggestedCat}?
-          </button>
+            <Sparkles className="w-3 h-3" />
+            {suggestedCat}
+          </Button>
         )}
       </div>
+
+      <Separator />
 
       {/* Task toggle */}
       <label className="flex items-center gap-3 cursor-pointer">
@@ -200,65 +205,72 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
           type="checkbox"
           checked={isTask}
           onChange={(e) => setIsTask(e.target.checked)}
-          className="w-5 h-5 rounded bg-gray-700 border-gray-600"
+          className="w-4 h-4 rounded border-input"
         />
-        <span className="text-white font-medium">This is a task</span>
+        <span className="text-sm font-medium text-foreground">This is a task</span>
       </label>
 
       {/* Task fields */}
       {isTask && (
-        <div className="space-y-3 pl-4 border-l-2 border-blue-500">
+        <div className="space-y-3 pl-4 border-l-2 border-primary/50">
           {/* Priority */}
           <div className="flex gap-2">
             {(['high', 'medium', 'low'] as const).map((p) => (
-              <button
+              <Button
                 key={p}
+                size="sm"
+                variant={priority === p ? 'default' : 'outline'}
+                className={priority === p ? (
+                  p === 'high' ? 'bg-red-500 hover:bg-red-600 text-white' :
+                  p === 'medium' ? 'bg-yellow-500 hover:bg-yellow-600 text-black' :
+                  'bg-green-500 hover:bg-green-600 text-white'
+                ) : ''}
                 onClick={() => setPriority(p)}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  priority === p
-                    ? p === 'high' ? 'bg-red-500 text-white' : p === 'medium' ? 'bg-yellow-500 text-black' : 'bg-green-500 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
               >
                 {p.charAt(0).toUpperCase() + p.slice(1)}
-              </button>
+              </Button>
             ))}
           </div>
 
           {/* Deadline */}
-          <input
-            type="datetime-local"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-          />
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            <Input
+              type="datetime-local"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+              className="flex-1"
+            />
+          </div>
 
           {/* Reminders */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-300 font-medium">Reminders</span>
-              <button onClick={addReminder} className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded text-white">
-                + Add
-              </button>
+              <span className="text-sm text-muted-foreground font-medium">Reminders</span>
+              <Button size="sm" variant="outline" onClick={addReminder} className="h-7 text-xs gap-1">
+                <Plus className="w-3 h-3" /> Add
+              </Button>
             </div>
             {reminders.map((r) => (
               <div key={r.id} className="flex gap-2 items-center">
-                <input
+                <Input
                   type="time"
                   value={r.time}
                   onChange={(e) => updateReminder(r.id, { time: e.target.value })}
-                  className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                  className="w-28 h-8 text-sm"
                 />
                 <select
                   value={r.escalationLevel}
                   onChange={(e) => updateReminder(r.id, { escalationLevel: e.target.value as any })}
-                  className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                  className="h-8 rounded-md border border-input bg-transparent px-2 text-sm"
                 >
                   <option value="gentle">Gentle</option>
                   <option value="urgent">Urgent</option>
                   <option value="alarm">Alarm</option>
                 </select>
-                <button onClick={() => removeReminder(r.id)} className="text-red-400 hover:text-red-300 text-sm">✕</button>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeReminder(r.id)}>
+                  <X className="w-3.5 h-3.5 text-destructive" />
+                </Button>
               </div>
             ))}
           </div>
@@ -270,16 +282,17 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
                 type="checkbox"
                 checked={recurring !== null}
                 onChange={(e) => setRecurring(e.target.checked ? { type: 'daily' } : null)}
-                className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+                className="w-4 h-4 rounded border-input"
               />
-              <span className="text-sm text-gray-300">Recurring</span>
+              <Repeat className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Recurring</span>
             </label>
             {recurring && (
-              <div className="mt-2 flex gap-2">
+              <div className="mt-2 flex gap-2 pl-6">
                 <select
                   value={recurring.type}
                   onChange={(e) => setRecurring({ ...recurring, type: e.target.value as any })}
-                  className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                  className="h-8 rounded-md border border-input bg-transparent px-2 text-sm"
                 >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
@@ -287,14 +300,14 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
                   <option value="intraday">Multiple/day</option>
                 </select>
                 {recurring.type === 'intraday' && (
-                  <input
+                  <Input
                     type="number"
                     placeholder="Every X hours"
                     min={1}
                     max={12}
                     value={recurring.interval || ''}
                     onChange={(e) => setRecurring({ ...recurring, interval: parseInt(e.target.value) })}
-                    className="w-32 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                    className="w-32 h-8 text-sm"
                   />
                 )}
               </div>
@@ -305,18 +318,12 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
 
       {/* Save */}
       <div className="flex gap-3 pt-2">
-        <button
-          onClick={handleSave}
-          className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-lg transition-colors"
-        >
+        <Button onClick={handleSave} className="flex-1">
           {editNote ? 'Update' : 'Save'}
-        </button>
-        <button
-          onClick={onCancel}
-          className="px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors"
-        >
+        </Button>
+        <Button variant="outline" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

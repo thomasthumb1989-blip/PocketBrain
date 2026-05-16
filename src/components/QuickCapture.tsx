@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/db';
 import { useSpeech, parseVoiceInput } from '@/hooks/useSpeech';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Mic, MicOff, CornerDownLeft } from 'lucide-react';
 
 interface QuickCaptureProps {
   onClose: () => void;
@@ -18,7 +22,6 @@ export default function QuickCapture({ onClose }: QuickCaptureProps) {
     }
   }, [transcript]);
 
-  // Keyboard shortcut handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -57,37 +60,40 @@ export default function QuickCapture({ onClose }: QuickCaptureProps) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-start justify-center pt-20 z-50 p-4">
-      <div className="w-full max-w-lg bg-gray-800 rounded-xl shadow-2xl p-4 animate-slide-down">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSave();
-            }}
-            placeholder="Quick capture... (dates & priority auto-detected)"
-            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            autoFocus
-          />
-          <button
-            onClick={isListening ? stopListening : startListening}
-            className={`p-3 rounded-lg ${isListening ? 'bg-red-500 animate-pulse' : 'bg-blue-600 hover:bg-blue-500'}`}
-          >
-            🎙️
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!text.trim()}
-            className="px-4 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 text-white rounded-lg font-medium"
-          >
-            ↵
-          </button>
-        </div>
-        <p className="text-gray-500 text-xs mt-2">
-          Ctrl+Space to toggle • Enter to save • Escape to close
-        </p>
-      </div>
+      <Card className="w-full max-w-lg animate-slide-down shadow-2xl">
+        <CardContent className="p-4">
+          <div className="flex gap-2">
+            <Input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSave();
+              }}
+              placeholder="Quick capture... (dates & priority auto-detected)"
+              autoFocus
+            />
+            <Button
+              size="icon"
+              variant={isListening ? 'destructive' : 'secondary'}
+              onClick={isListening ? stopListening : startListening}
+              className={isListening ? 'animate-pulse' : ''}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </Button>
+            <Button
+              size="icon"
+              disabled={!text.trim()}
+              onClick={handleSave}
+              className="bg-green-600 hover:bg-green-500"
+            >
+              <CornerDownLeft className="w-4 h-4" />
+            </Button>
+          </div>
+          <p className="text-muted-foreground text-xs mt-2">
+            Ctrl+Space to toggle · Enter to save · Escape to close
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { db, type Note, getUpcomingTasks, archiveCompleted } from '@/lib/db';
+import { useState, useEffect } from 'react';
+import { db, type Note, archiveCompleted } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { requestNotificationPermission, startReminderChecker } from '@/lib/notifications';
 import { trainModel, seedDefaultCategories } from '@/lib/categories';
@@ -12,6 +12,14 @@ import FocusMode from '@/components/FocusMode';
 import DailyRitual from '@/components/DailyRitual';
 import QuickCapture from '@/components/QuickCapture';
 import StreakDisplay from '@/components/StreakDisplay';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { Plus, Target, Mic, Search as SearchIcon, LayoutDashboard, FileText, Tag, Archive, Brain } from 'lucide-react';
 
 type View = 'dashboard' | 'all-notes' | 'focus' | 'categories' | 'archive' | 'search';
 
@@ -64,7 +72,6 @@ export default function Home() {
     archiveCompleted();
     seedDefaultCategories();
 
-    // Check if morning ritual needed
     const hour = new Date().getHours();
     if (hour >= 6 && hour <= 10) {
       const today = new Date().toISOString().split('T')[0];
@@ -95,7 +102,6 @@ export default function Home() {
       progress: 100,
     });
 
-    // Update streak
     const today = new Date().toISOString().split('T')[0];
     const existing = await db.streaks.where('date').equals(today).first();
     if (existing) {
@@ -115,7 +121,6 @@ export default function Home() {
     setShowForm(true);
   };
 
-  // Filtered notes for search
   const filteredNotes = allNotes?.filter((note) => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -126,7 +131,6 @@ export default function Home() {
     return true;
   });
 
-  // Focus mode
   if (view === 'focus') {
     return (
       <FocusMode
@@ -140,109 +144,100 @@ export default function Home() {
   const displayTasks = showMore ? upcomingTasks : upcomingTasks?.slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-background">
       {/* Quick Capture Modal */}
       {showQuickCapture && <QuickCapture onClose={() => setShowQuickCapture(false)} />}
 
       {/* Daily Ritual */}
-      {showRitual && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-40 p-4">
-          <DailyRitual type={showRitual} onClose={() => setShowRitual(null)} />
-        </div>
-      )}
+      <Dialog open={showRitual !== null} onOpenChange={() => setShowRitual(null)}>
+        <DialogContent className="sm:max-w-md p-0 border-border bg-card">
+          {showRitual && <DailyRitual type={showRitual} onClose={() => setShowRitual(null)} />}
+        </DialogContent>
+      </Dialog>
 
       {/* Note Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-30 p-4">
-          <div className="w-full max-w-lg">
-            <NoteForm
-              editNote={editNote}
-              onSave={() => { setShowForm(false); setEditNote(null); trainModel(); }}
-              onCancel={() => { setShowForm(false); setEditNote(null); }}
-            />
-          </div>
-        </div>
-      )}
+      <Dialog open={showForm} onOpenChange={(open) => { if (!open) { setShowForm(false); setEditNote(null); } }}>
+        <DialogContent className="sm:max-w-lg p-0 border-border bg-card">
+          <NoteForm
+            editNote={editNote}
+            onSave={() => { setShowForm(false); setEditNote(null); trainModel(); }}
+            onCancel={() => { setShowForm(false); setEditNote(null); }}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Header */}
-      <header className="sticky top-0 bg-gray-900/95 backdrop-blur border-b border-gray-800 z-20">
+      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-bold">
-            🧠 <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">PocketBrain</span>
-          </h1>
+          <div className="flex items-center gap-2">
+            <Brain className="h-6 w-6 text-primary" />
+            <h1 className="text-xl font-bold tracking-tight">PocketBrain</h1>
+          </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => setView('focus')}
-              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium"
-              title="Focus Mode"
-            >
-              🎯
-            </button>
-            <button
-              onClick={() => setShowForm(true)}
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium"
-            >
-              + New
-            </button>
+            <Button variant="secondary" size="sm" onClick={() => setView('focus')}>
+              <Target className="h-4 w-4 mr-1" />
+              Focus
+            </Button>
+            <Button size="sm" onClick={() => setShowForm(true)}>
+              <Plus className="h-4 w-4 mr-1" />
+              New
+            </Button>
           </div>
         </div>
 
         {/* Nav tabs */}
-        <div className="max-w-4xl mx-auto px-4 flex gap-1 pb-2 overflow-x-auto">
-          {[
-            { id: 'dashboard', label: '📋 Dashboard' },
-            { id: 'all-notes', label: '📝 All Notes' },
-            { id: 'search', label: '🔍 Search' },
-            { id: 'categories', label: '🏷️ Categories' },
-            { id: 'archive', label: '📦 Archive' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setView(tab.id as View)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-                view === tab.id ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="max-w-4xl mx-auto px-4 pb-2">
+          <Tabs value={view} onValueChange={(v) => setView(v as View)}>
+            <TabsList className="w-full justify-start bg-muted/50 h-9">
+              <TabsTrigger value="dashboard" className="text-xs gap-1">
+                <LayoutDashboard className="h-3 w-3" /> Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="all-notes" className="text-xs gap-1">
+                <FileText className="h-3 w-3" /> All Notes
+              </TabsTrigger>
+              <TabsTrigger value="search" className="text-xs gap-1">
+                <SearchIcon className="h-3 w-3" /> Search
+              </TabsTrigger>
+              <TabsTrigger value="categories" className="text-xs gap-1">
+                <Tag className="h-3 w-3" /> Categories
+              </TabsTrigger>
+              <TabsTrigger value="archive" className="text-xs gap-1">
+                <Archive className="h-3 w-3" /> Archive
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-6">
         {view === 'dashboard' && (
-          <div className="space-y-6">
-            {/* Streak */}
+          <div className="space-y-5">
             <StreakDisplay />
 
             {/* Quick add task */}
-            <div className="bg-gray-800 rounded-xl p-4">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowForm(true)}
-                  className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-gray-400 text-left hover:bg-gray-650 hover:border-gray-500 transition-colors"
-                >
-                  + Add a task...
-                </button>
-              </div>
-            </div>
+            <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setShowForm(true)}>
+              <CardContent className="p-3 flex items-center gap-3 text-muted-foreground">
+                <Plus className="h-4 w-4" />
+                <span className="text-sm">Add a task...</span>
+              </CardContent>
+            </Card>
 
             {/* Brain dump */}
-            <div className="bg-gray-800 rounded-xl p-4">
-              <NoteForm
-                onSave={() => trainModel()}
-                onCancel={() => {}}
-                brainDump
-              />
-            </div>
+            <Card>
+              <CardContent className="p-3">
+                <NoteForm onSave={() => trainModel()} onCancel={() => {}} brainDump />
+              </CardContent>
+            </Card>
 
             {/* Overdue */}
             {overdueTasks && overdueTasks.length > 0 && (
               <div>
-                <h2 className="text-sm font-bold text-red-400 mb-3 flex items-center gap-2">
-                  🔴 OVERDUE ({overdueTasks.length})
-                </h2>
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge variant="destructive" className="text-xs font-semibold">
+                    OVERDUE ({overdueTasks.length})
+                  </Badge>
+                </div>
                 <div className="grid gap-3">
                   {overdueTasks.map((task) => (
                     <TaskCard key={task.id} task={task} onComplete={handleComplete} onEdit={handleEdit} />
@@ -253,7 +248,9 @@ export default function Home() {
 
             {/* Upcoming */}
             <div>
-              <h2 className="text-sm font-bold text-gray-300 mb-3">⏰ ENDING SOONEST</h2>
+              <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+                Ending Soonest
+              </h2>
               {displayTasks && displayTasks.length > 0 ? (
                 <div className="grid gap-3">
                   {displayTasks.map((task) => (
@@ -261,15 +258,16 @@ export default function Home() {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-8">No upcoming tasks. Add one above!</p>
+                <Card>
+                  <CardContent className="p-8 text-center text-muted-foreground text-sm">
+                    No upcoming tasks. Add one above!
+                  </CardContent>
+                </Card>
               )}
               {upcomingTasks && upcomingTasks.length > 5 && !showMore && (
-                <button
-                  onClick={() => setShowMore(true)}
-                  className="w-full mt-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-400 text-sm"
-                >
+                <Button variant="ghost" className="w-full mt-3" onClick={() => setShowMore(true)}>
                   Show {upcomingTasks.length - 5} more...
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -278,56 +276,60 @@ export default function Home() {
         {view === 'all-notes' && (
           <div className="space-y-3">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold">All Notes</h2>
-              <button
-                onClick={() => setShowBrainDump(!showBrainDump)}
-                className="text-sm bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg"
-              >
-                🧠 Brain Dump
-              </button>
+              <h2 className="text-lg font-semibold">All Notes</h2>
+              <Button variant="outline" size="sm" onClick={() => setShowBrainDump(!showBrainDump)}>
+                <Brain className="h-4 w-4 mr-1" />
+                Brain Dump
+              </Button>
             </div>
             {showBrainDump && (
-              <div className="bg-gray-800 rounded-xl p-4 mb-4">
-                <NoteForm onSave={() => trainModel()} onCancel={() => setShowBrainDump(false)} brainDump />
-              </div>
+              <Card className="mb-4">
+                <CardContent className="p-3">
+                  <NoteForm onSave={() => trainModel()} onCancel={() => setShowBrainDump(false)} brainDump />
+                </CardContent>
+              </Card>
             )}
             {filteredNotes?.map((note) => (
-              <div
+              <Card
                 key={note.id}
+                className="cursor-pointer hover:bg-accent/50 transition-colors"
                 onClick={() => handleEdit(note)}
-                className="bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-750 transition-colors"
-                style={{ borderLeft: `3px solid ${note.categoryColor || '#555'}` }}
+                style={{ borderLeftWidth: '3px', borderLeftColor: note.categoryColor || 'transparent' }}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  {note.category && (
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: note.categoryColor + '30', color: note.categoryColor }}>
-                      {note.category}
-                    </span>
-                  )}
-                  {note.isTask && <span className="text-xs text-blue-400">📌 Task</span>}
-                </div>
-                <h3 className="font-medium text-white">{note.title}</h3>
-                <p className="text-gray-400 text-sm line-clamp-1">{note.content}</p>
-              </div>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    {note.category && (
+                      <Badge variant="secondary" className="text-xs" style={{ backgroundColor: note.categoryColor + '20', color: note.categoryColor, borderColor: note.categoryColor + '40' }}>
+                        {note.category}
+                      </Badge>
+                    )}
+                    {note.isTask && <Badge variant="outline" className="text-xs">Task</Badge>}
+                  </div>
+                  <h3 className="font-medium">{note.title}</h3>
+                  <p className="text-muted-foreground text-sm line-clamp-1">{note.content}</p>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
 
         {view === 'search' && (
           <div className="space-y-4">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search notes and tasks..."
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              autoFocus
-            />
+            <div className="relative">
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search notes and tasks..."
+                className="pl-9"
+                autoFocus
+              />
+            </div>
             <div className="flex gap-2">
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
               >
                 <option value="">All categories</option>
                 {categories?.map((cat) => (
@@ -337,7 +339,7 @@ export default function Home() {
               <select
                 value={filterPriority}
                 onChange={(e) => setFilterPriority(e.target.value)}
-                className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
               >
                 <option value="">All priorities</option>
                 <option value="high">High</option>
@@ -347,89 +349,95 @@ export default function Home() {
             </div>
             <div className="space-y-2">
               {filteredNotes?.map((note) => (
-                <div
-                  key={note.id}
-                  onClick={() => handleEdit(note)}
-                  className="bg-gray-800 rounded-lg p-3 cursor-pointer hover:bg-gray-750"
-                >
-                  <h3 className="font-medium text-white text-sm">{note.title}</h3>
-                  <p className="text-gray-400 text-xs line-clamp-1">{note.content}</p>
-                </div>
+                <Card key={note.id} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => handleEdit(note)}>
+                  <CardContent className="p-3">
+                    <h3 className="font-medium text-sm">{note.title}</h3>
+                    <p className="text-muted-foreground text-xs line-clamp-1">{note.content}</p>
+                  </CardContent>
+                </Card>
               ))}
               {filteredNotes?.length === 0 && (
-                <p className="text-gray-500 text-center py-8">No results found</p>
+                <Card>
+                  <CardContent className="p-8 text-center text-muted-foreground text-sm">
+                    No results found
+                  </CardContent>
+                </Card>
               )}
             </div>
           </div>
         )}
 
         {view === 'categories' && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold">Categories</h2>
-              <button
-                onClick={async () => {
-                  const name = prompt('Category name:');
-                  if (name) {
-                    const { getNextColor } = await import('@/lib/categories');
-                    const existingColors = categories?.map((c) => c.color) || [];
-                    await db.categories.add({
-                      name,
-                      color: getNextColor(existingColors),
-                      createdAt: new Date(),
-                    });
-                  }
-                }}
-                className="text-sm bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg"
-              >
-                + Add
-              </button>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Categories</h2>
+              <Button size="sm" onClick={async () => {
+                const name = prompt('Category name:');
+                if (name) {
+                  const { getNextColor } = await import('@/lib/categories');
+                  const existingColors = categories?.map((c) => c.color) || [];
+                  await db.categories.add({ name, color: getNextColor(existingColors), createdAt: new Date() });
+                }
+              }}>
+                <Plus className="h-4 w-4 mr-1" /> Add
+              </Button>
             </div>
             {categories?.map((cat) => (
-              <div key={cat.id} className="flex items-center gap-3 bg-gray-800 rounded-lg p-3">
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: cat.color }} />
-                <span className="text-white font-medium flex-1">{cat.name}</span>
-                <button
-                  onClick={async () => {
-                    if (confirm(`Delete category "${cat.name}"?`)) {
-                      await db.categories.delete(cat.id!);
-                    }
-                  }}
-                  className="text-red-400 hover:text-red-300 text-sm"
-                >
-                  ✕
-                </button>
-              </div>
+              <Card key={cat.id}>
+                <CardContent className="p-3 flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                  <span className="font-medium flex-1 text-sm">{cat.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                    onClick={async () => {
+                      if (confirm(`Delete category "${cat.name}"?`)) {
+                        await db.categories.delete(cat.id!);
+                      }
+                    }}
+                  >
+                    ✕
+                  </Button>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
 
         {view === 'archive' && (
           <div className="space-y-3">
-            <h2 className="text-lg font-bold mb-4">Archive</h2>
+            <h2 className="text-lg font-semibold mb-4">Archive</h2>
             {archivedNotes?.map((note) => (
-              <div key={note.id} className="bg-gray-800 rounded-lg p-3 opacity-60">
-                <h3 className="font-medium text-white text-sm line-through">{note.title}</h3>
-                <p className="text-gray-400 text-xs">
-                  Completed: {note.completedAt ? new Date(note.completedAt).toLocaleDateString() : 'N/A'}
-                </p>
-              </div>
+              <Card key={note.id} className="opacity-60">
+                <CardContent className="p-3">
+                  <h3 className="font-medium text-sm line-through">{note.title}</h3>
+                  <p className="text-muted-foreground text-xs">
+                    Completed: {note.completedAt ? new Date(note.completedAt).toLocaleDateString() : 'N/A'}
+                  </p>
+                </CardContent>
+              </Card>
             ))}
             {archivedNotes?.length === 0 && (
-              <p className="text-gray-500 text-center py-8">No archived items yet</p>
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground text-sm">
+                  No archived items yet
+                </CardContent>
+              </Card>
             )}
           </div>
         )}
       </main>
 
       {/* Floating mic button */}
-      <button
+      <Button
         onClick={() => setShowQuickCapture(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-500 rounded-full shadow-lg flex items-center justify-center text-2xl z-10 transition-transform hover:scale-110"
+        size="lg"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-10"
         title="Quick Capture (Ctrl+Space)"
       >
-        🎙️
-      </button>
+        <Mic className="h-6 w-6" />
+      </Button>
     </div>
   );
 }
