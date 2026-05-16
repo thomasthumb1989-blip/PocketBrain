@@ -1,0 +1,37 @@
+{
+  "name": "PocketBrain",
+  "short_name": "PocketBrain",
+  "description": "ADHD-optimized note & task manager with voice input",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Quick Capture",
+      "url": "/?action=capture",
+      "description": "Quickly capture a thought"
+    },
+    {
+      "name": "Focus Mode",
+      "url": "/?action=focus",
+      "description": "Enter focus mode"
+    }
+  ]
+}
