@@ -11,6 +11,7 @@ import NoteForm from '@/components/NoteForm';
 import FocusMode from '@/components/FocusMode';
 import DailyRitual from '@/components/DailyRitual';
 import QuickCapture from '@/components/QuickCapture';
+import InstallPrompt from '@/components/InstallPrompt';
 import StreakDisplay from '@/components/StreakDisplay';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -445,6 +446,9 @@ export default function Home() {
           <Mic className="h-6 w-6" />
         </Button>
       )}
+
+      {/* PWA install prompt */}
+      <InstallPrompt />
     </div>
   );
 }
