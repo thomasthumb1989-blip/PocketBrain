@@ -192,23 +192,29 @@ export default function Home() {
         </div>
 
         {/* Nav tabs */}
-        <div className="max-w-4xl mx-auto px-4 pb-2">
+        <div className="max-w-4xl mx-auto px-4 pb-2 overflow-x-auto">
           <Tabs value={view} onValueChange={(v) => setView(v as View)}>
-            <TabsList className="w-full justify-start bg-muted/50 h-9">
-              <TabsTrigger value="dashboard" className="text-xs gap-1">
-                <LayoutDashboard className="h-3 w-3" /> Dashboard
+            <TabsList className="w-full grid grid-cols-5 bg-muted/50 h-9">
+              <TabsTrigger value="dashboard" className="text-xs gap-1 px-1">
+                <LayoutDashboard className="h-3 w-3 shrink-0" />
+                <span className="hidden sm:inline">Dashboard</span>
+                <span className="sm:hidden">Home</span>
               </TabsTrigger>
-              <TabsTrigger value="all-notes" className="text-xs gap-1">
-                <FileText className="h-3 w-3" /> All Notes
+              <TabsTrigger value="all-notes" className="text-xs gap-1 px-1">
+                <FileText className="h-3 w-3 shrink-0" />
+                <span className="hidden sm:inline">All Notes</span>
+                <span className="sm:hidden">Notes</span>
               </TabsTrigger>
-              <TabsTrigger value="search" className="text-xs gap-1">
-                <SearchIcon className="h-3 w-3" /> Search
+              <TabsTrigger value="search" className="text-xs gap-1 px-1">
+                <SearchIcon className="h-3 w-3 shrink-0" /> Search
               </TabsTrigger>
-              <TabsTrigger value="categories" className="text-xs gap-1">
-                <Tag className="h-3 w-3" /> Categories
+              <TabsTrigger value="categories" className="text-xs gap-1 px-1">
+                <Tag className="h-3 w-3 shrink-0" />
+                <span className="hidden sm:inline">Categories</span>
+                <span className="sm:hidden">Tags</span>
               </TabsTrigger>
-              <TabsTrigger value="archive" className="text-xs gap-1">
-                <Archive className="h-3 w-3" /> Archive
+              <TabsTrigger value="archive" className="text-xs gap-1 px-1">
+                <Archive className="h-3 w-3 shrink-0" /> Archive
               </TabsTrigger>
             </TabsList>
           </Tabs>

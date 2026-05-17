@@ -36,20 +36,26 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
   const categories = useLiveQuery(() => db.categories.toArray());
 
   const contentBeforeVoiceRef = useRef('');
+  const lastTranscriptRef = useRef('');
 
-  // When mic starts, snapshot current content
+  // When mic starts, snapshot current content once
   useEffect(() => {
     if (isListening) {
       contentBeforeVoiceRef.current = content;
+      lastTranscriptRef.current = '';
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isListening]);
 
   // Replace (not append) with latest transcript
   useEffect(() => {
-    if (transcript) {
+    if (transcript && transcript !== lastTranscriptRef.current) {
+      lastTranscriptRef.current = transcript;
       const parsed = parseVoiceInput(transcript);
-      const before = contentBeforeVoiceRef.current;
-      setContent(before ? before + ' ' + parsed.cleanText : parsed.cleanText);
+      setContent(contentBeforeVoiceRef.current
+        ? contentBeforeVoiceRef.current + ' ' + parsed.cleanText
+        : parsed.cleanText
+      );
       if (parsed.suggestedDeadline) {
         setDeadline(formatDateForInput(parsed.suggestedDeadline));
         setIsTask(true);
