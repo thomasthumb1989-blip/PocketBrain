@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { db, type Note, type Reminder, type RecurringConfig } from '@/lib/db';
 import { useSpeech, parseVoiceInput } from '@/hooks/useSpeech';
 import { suggestCategory } from '@/lib/categories';
@@ -31,14 +31,25 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
   const [recurring, setRecurring] = useState<RecurringConfig | null>(editNote?.recurring || null);
   const [suggestedCat, setSuggestedCat] = useState<string | null>(null);
 
-  const { transcript, isListening, startListening, stopListening, error: speechError, isSupported: micSupported } = useSpeech();
+  const { transcript, isListening, toggleListening, error: speechError, isSupported: micSupported } = useSpeech();
 
   const categories = useLiveQuery(() => db.categories.toArray());
 
+  const contentBeforeVoiceRef = useRef('');
+
+  // When mic starts, snapshot current content
+  useEffect(() => {
+    if (isListening) {
+      contentBeforeVoiceRef.current = content;
+    }
+  }, [isListening]);
+
+  // Replace (not append) with latest transcript
   useEffect(() => {
     if (transcript) {
       const parsed = parseVoiceInput(transcript);
-      setContent((prev) => prev + (prev ? ' ' : '') + parsed.cleanText);
+      const before = contentBeforeVoiceRef.current;
+      setContent(before ? before + ' ' + parsed.cleanText : parsed.cleanText);
       if (parsed.suggestedDeadline) {
         setDeadline(formatDateForInput(parsed.suggestedDeadline));
         setIsTask(true);
@@ -122,17 +133,23 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
             autoFocus
           />
           {micSupported && (
-            <Button
-              size="icon"
-              variant={isListening ? 'destructive' : 'default'}
-              onClick={isListening ? stopListening : startListening}
-              className={isListening ? 'animate-pulse' : ''}
+            <button
+              type="button"
+              onClick={toggleListening}
+              className={`flex items-center justify-center w-10 h-10 rounded-lg select-none transition-colors ${
+                isListening
+                  ? 'bg-red-500 text-white animate-pulse'
+                  : 'bg-primary text-primary-foreground hover:bg-primary/80'
+              }`}
             >
               {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-            </Button>
+            </button>
           )}
         </div>
-        <p className="text-muted-foreground text-xs">Press Enter to save.{micSupported ? ' Voice button for speech.' : ''} Sort later in organize mode.</p>
+        {speechError && <p className="text-destructive text-xs">{speechError}</p>}
+        {isListening && <p className="text-green-400 text-xs animate-pulse">🎙️ Listening... speak now</p>}
+        {transcript && !isListening && <p className="text-blue-400 text-xs">Heard: "{transcript}"</p>}
+        <p className="text-muted-foreground text-xs">Press Enter to save.{micSupported ? ' Tap mic to start/stop recording.' : ''} Sort later in organize mode.</p>
       </div>
     );
   }
@@ -156,14 +173,17 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
           className="resize-none pr-12"
         />
         {micSupported && (
-          <Button
-            size="icon"
-            variant={isListening ? 'destructive' : 'secondary'}
-            className={`absolute bottom-2 right-2 h-8 w-8 ${isListening ? 'animate-pulse' : ''}`}
-            onClick={isListening ? stopListening : startListening}
+          <button
+            type="button"
+            onClick={toggleListening}
+            className={`absolute bottom-2 right-2 h-8 w-8 flex items-center justify-center rounded-md select-none transition-colors ${
+              isListening
+                ? 'bg-red-500 text-white animate-pulse'
+                : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+            }`}
           >
             {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
-          </Button>
+          </button>
         )}
       </div>
       {speechError && <p className="text-destructive text-xs">{speechError}</p>}

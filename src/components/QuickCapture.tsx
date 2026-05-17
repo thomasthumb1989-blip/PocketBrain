@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { db } from '@/lib/db';
 import { useSpeech, parseVoiceInput } from '@/hooks/useSpeech';
 import { Input } from '@/components/ui/input';
@@ -14,11 +14,20 @@ interface QuickCaptureProps {
 
 export default function QuickCapture({ onClose }: QuickCaptureProps) {
   const [text, setText] = useState('');
-  const { transcript, isListening, startListening, stopListening, isSupported: micSupported } = useSpeech();
+  const { transcript, isListening, toggleListening, isSupported: micSupported } = useSpeech();
+
+  const textBeforeVoiceRef = useRef('');
+
+  useEffect(() => {
+    if (isListening) {
+      textBeforeVoiceRef.current = text;
+    }
+  }, [isListening]);
 
   useEffect(() => {
     if (transcript) {
-      setText((prev) => prev + (prev ? ' ' : '') + transcript);
+      const before = textBeforeVoiceRef.current;
+      setText(before ? before + ' ' + transcript : transcript);
     }
   }, [transcript]);
 
@@ -73,14 +82,17 @@ export default function QuickCapture({ onClose }: QuickCaptureProps) {
               autoFocus
             />
             {micSupported && (
-              <Button
-                size="icon"
-                variant={isListening ? 'destructive' : 'secondary'}
-                onClick={isListening ? stopListening : startListening}
-                className={isListening ? 'animate-pulse' : ''}
+              <button
+                type="button"
+                onClick={toggleListening}
+                className={`flex items-center justify-center w-10 h-10 rounded-lg select-none transition-colors ${
+                  isListening
+                    ? 'bg-red-500 text-white animate-pulse'
+                    : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                }`}
               >
                 {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </Button>
+              </button>
             )}
             <Button
               size="icon"

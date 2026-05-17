@@ -5,8 +5,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 interface SpeechResult {
   transcript: string;
   isListening: boolean;
-  startListening: () => void;
-  stopListening: () => void;
+  toggleListening: () => void;
   error: string | null;
   isSupported: boolean;
 }
@@ -26,154 +25,134 @@ export function useSpeech(): SpeechResult {
   const [error, setError] = useState<string | null>(null);
   const [isSupported, setIsSupported] = useState(true);
   const recognitionRef = useRef<any>(null);
-  const shouldRestartRef = useRef(false);
+  const listeningRef = useRef(false);
 
-  // Check support on mount
   useEffect(() => {
     setIsSupported(getSpeechRecognition() !== null);
   }, []);
 
-  const startListening = useCallback(async () => {
-    const SpeechRecognitionClass = getSpeechRecognition();
+  const toggleListening = useCallback(() => {
+    // ---- STOP ----
+    if (listeningRef.current) {
+      console.log('[PocketBrain] STOP listening');
+      listeningRef.current = false;
+      setIsListening(false);
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch {}
+        recognitionRef.current = null;
+      }
+      return;
+    }
 
+    // ---- START ----
+    const SpeechRecognitionClass = getSpeechRecognition();
     if (!SpeechRecognitionClass) {
-      setError('Voice input not supported in this browser. Try Chrome, Edge, or Safari.');
+      setError('Voice input not supported. Try Chrome, Edge, or Safari.');
       setIsSupported(false);
       return;
     }
 
-    // Request mic permission explicitly first (needed for mobile PWAs)
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Stop the stream immediately — we just needed the permission grant
-      stream.getTracks().forEach((track) => track.stop());
-    } catch (e: any) {
-      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-        setError('Microphone access denied. Please enable mic in your browser/device settings.');
-      } else if (e.name === 'NotFoundError') {
-        setError('No microphone found. Please connect a microphone.');
-      } else {
-        setError(`Microphone error: ${e.message}`);
-      }
-      return;
+    console.log('[PocketBrain] START listening');
+
+    // Clean up any stale instance
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch {}
     }
 
-    // Reset transcript on new listen session
     setTranscript('');
     setError(null);
-    shouldRestartRef.current = true;
+    listeningRef.current = true;
+    setIsListening(true);
 
     const recognition = new SpeechRecognitionClass();
-
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.lang = 'en-GB';
-    // Max alternatives for better accuracy on mobile
-    recognition.maxAlternatives = 1;
 
-    recognition.onstart = () => {
-      setIsListening(true);
-      setError(null);
-    };
+    let finalSoFar = '';
 
     recognition.onresult = (event: any) => {
-      let finalTranscript = '';
+      let finalText = '';
+      let interimText = '';
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      for (let i = 0; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
+          finalText += event.results[i][0].transcript + ' ';
+        } else {
+          interimText += event.results[i][0].transcript;
         }
       }
 
-      if (finalTranscript) {
-        setTranscript(finalTranscript.trim());
+      if (finalText.trim()) {
+        finalSoFar = finalText.trim();
       }
+      // Show final + current interim (replaces, not appends)
+      const display = (finalSoFar + ' ' + interimText).trim();
+      console.log('[PocketBrain] Result:', display);
+      if (display) setTranscript(display);
     };
 
     recognition.onerror = (event: any) => {
-      console.error('Speech recognition error:', event.error);
-
-      switch (event.error) {
-        case 'not-allowed':
-          setError('Microphone access denied. Enable mic in browser settings.');
-          shouldRestartRef.current = false;
-          break;
-        case 'no-speech':
-          // Don't show error for no-speech, just restart if still listening
-          if (shouldRestartRef.current) {
-            try { recognition.start(); } catch {}
-            return;
-          }
-          break;
-        case 'network':
-          setError('Network error. Voice recognition needs internet in some browsers.');
-          shouldRestartRef.current = false;
-          break;
-        case 'aborted':
-          // User or system cancelled — don't show error
-          break;
-        case 'audio-capture':
-          setError('No microphone found or mic is in use by another app.');
-          shouldRestartRef.current = false;
-          break;
-        case 'service-not-allowed':
-          setError('Speech service not available. Try Chrome or Safari.');
-          shouldRestartRef.current = false;
-          break;
-        default:
-          setError(`Voice error: ${event.error}`);
-          shouldRestartRef.current = false;
+      console.error('[PocketBrain] Error:', event.error);
+      if (event.error === 'no-speech') {
+        // Don't kill — just keep listening
+        return;
       }
-
-      if (!shouldRestartRef.current) {
-        setIsListening(false);
+      if (event.error === 'not-allowed') {
+        setError('Mic access denied. Enable in browser settings.');
+      } else if (event.error === 'audio-capture') {
+        setError('No mic found or mic in use.');
+      } else if (event.error === 'network') {
+        setError('Network error. Voice needs internet.');
+      } else if (event.error !== 'aborted') {
+        setError(`Voice error: ${event.error}`);
       }
+      listeningRef.current = false;
+      setIsListening(false);
     };
 
     recognition.onend = () => {
-      // Auto-restart on mobile where recognition stops after silence
-      if (shouldRestartRef.current) {
+      console.log('[PocketBrain] Recognition ended');
+      // If we're still supposed to be listening, restart (mobile kills on silence)
+      if (listeningRef.current) {
+        console.log('[PocketBrain] Auto-restarting...');
         try {
           recognition.start();
           return;
         } catch {
-          // Can't restart, fall through to stop
+          // Can't restart
         }
       }
+      listeningRef.current = false;
       setIsListening(false);
+      if (finalSoFar) setTranscript(finalSoFar);
     };
 
     recognitionRef.current = recognition;
 
     try {
       recognition.start();
+      console.log('[PocketBrain] recognition.start() OK');
     } catch (e: any) {
-      setError(`Failed to start voice input: ${e.message}`);
+      console.error('[PocketBrain] Start failed:', e);
+      setError(`Failed to start: ${e.message}`);
+      listeningRef.current = false;
       setIsListening(false);
     }
-  }, []);
-
-  const stopListening = useCallback(() => {
-    shouldRestartRef.current = false;
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-    setIsListening(false);
   }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      shouldRestartRef.current = false;
+      listeningRef.current = false;
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try { recognitionRef.current.abort(); } catch {}
         recognitionRef.current = null;
       }
     };
   }, []);
 
-  return { transcript, isListening, startListening, stopListening, error, isSupported };
+  return { transcript, isListening, toggleListening, error, isSupported };
 }
 
 // Parse natural language for dates, priorities, categories
@@ -186,7 +165,6 @@ export function parseVoiceInput(text: string): {
   let suggestedDeadline: Date | null = null;
   let suggestedPriority: 'high' | 'medium' | 'low' | null = null;
 
-  // Parse priority
   if (/\b(urgent|critical|asap|important)\b/i.test(text)) {
     suggestedPriority = 'high';
   } else if (/\b(soon|medium priority)\b/i.test(text)) {
@@ -195,7 +173,6 @@ export function parseVoiceInput(text: string): {
     suggestedPriority = 'low';
   }
 
-  // Parse relative dates
   const now = new Date();
 
   if (/\btomorrow\b/i.test(text)) {
@@ -224,7 +201,6 @@ export function parseVoiceInput(text: string): {
     }
   }
 
-  // Parse day names
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   for (let i = 0; i < days.length; i++) {
     const regex = new RegExp(`\\b(this |next )?${days[i]}\\b`, 'i');
@@ -240,7 +216,6 @@ export function parseVoiceInput(text: string): {
     }
   }
 
-  // Clean up common voice command prefixes
   cleanText = cleanText
     .replace(/^(remind me to |add task |note that |remember to )/i, '')
     .replace(/\s+/g, ' ')
