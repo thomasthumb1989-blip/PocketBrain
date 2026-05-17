@@ -31,7 +31,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("dark font-sans antialiased", geist.variable)}>
       <head>
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
       <body className="min-h-screen bg-background text-foreground">{children}</body>
     </html>
