@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Mic, MicOff, Plus, X, Sparkles, Clock, Repeat } from 'lucide-react';
+import { Mic, MicOff, Plus, X, Sparkles, Clock, Repeat, Check } from 'lucide-react';
 
 interface NoteFormProps {
   editNote?: Note | null;
@@ -151,11 +151,25 @@ export default function NoteForm({ editNote, onSave, onCancel, brainDump = false
               {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </button>
           )}
+          <Button
+            size="icon"
+            disabled={!content.trim()}
+            onClick={() => {
+              if (content.trim()) {
+                handleSave();
+                setContent('');
+                setTitle('');
+              }
+            }}
+            className="bg-green-600 hover:bg-green-500 h-10 w-10 shrink-0"
+          >
+            <Check className="w-4 h-4" />
+          </Button>
         </div>
         {speechError && <p className="text-destructive text-xs">{speechError}</p>}
         {isListening && <p className="text-green-400 text-xs animate-pulse">🎙️ Listening... speak now</p>}
-        {transcript && !isListening && <p className="text-blue-400 text-xs">Heard: "{transcript}"</p>}
-        <p className="text-muted-foreground text-xs">Press Enter to save.{micSupported ? ' Tap mic to start/stop recording.' : ''} Sort later in organize mode.</p>
+        {transcript && !isListening && <p className="text-blue-400 text-xs">Heard: &quot;{transcript}&quot;</p>}
+        <p className="text-muted-foreground text-xs">Tap ✓ to save.{micSupported ? ' Tap mic to record.' : ''} Sort later in organize mode.</p>
       </div>
     );
   }

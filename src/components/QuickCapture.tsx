@@ -6,7 +6,7 @@ import { useSpeech, parseVoiceInput } from '@/hooks/useSpeech';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Mic, MicOff, CornerDownLeft } from 'lucide-react';
+import { Mic, MicOff, CornerDownLeft, X } from 'lucide-react';
 
 interface QuickCaptureProps {
   onClose: () => void;
@@ -78,7 +78,7 @@ export default function QuickCapture({ onClose }: QuickCaptureProps) {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleSave();
               }}
-              placeholder="Quick capture... (dates & priority auto-detected)"
+              placeholder="Quick capture..."
               autoFocus
             />
             {micSupported && (
@@ -94,17 +94,25 @@ export default function QuickCapture({ onClose }: QuickCaptureProps) {
                 {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </button>
             )}
+          </div>
+          <div className="flex gap-2 mt-3">
             <Button
-              size="icon"
-              disabled={!text.trim()}
               onClick={handleSave}
-              className="bg-green-600 hover:bg-green-500"
+              disabled={!text.trim()}
+              className="flex-1 bg-green-600 hover:bg-green-500"
             >
-              <CornerDownLeft className="w-4 h-4" />
+              <CornerDownLeft className="w-4 h-4 mr-1" /> Save
+            </Button>
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+            >
+              <X className="w-4 h-4 mr-1" /> Close
             </Button>
           </div>
           <p className="text-muted-foreground text-xs mt-2">
-            Ctrl+Space to toggle · Enter to save · Escape to close
+            Dates & priority auto-detected from text
           </p>
         </CardContent>
       </Card>
